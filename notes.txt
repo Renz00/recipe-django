@@ -1,0 +1,10 @@
+# Start the build process for Dockerfile in specified path
+docker build .
+
+# Start the build process for docker-compose.yml file
+docker-compose build
+
+# Run a shell command in a specified docker container
+docker-compose run --rm NAME_OF_SERVICE sh -c "COMMAND_TO_RUN"
+
+for ex. docker-compose run --rm app sh -c "django-admin startproject app ."

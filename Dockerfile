@@ -9,7 +9,7 @@ COPY ./requirements.txt /tmp/requirements.txt
 COPY ./requirements.dev.txt /tmp/requirements.dev.txt
 COPY ./app /app
 WORKDIR /app
-EXPOSE 8080
+EXPOSE 8000
 
 # by default DEV is false. When docker compose is used, the DEV variable will be overwritten to true
 ARG DEV=false
@@ -20,7 +20,7 @@ RUN python -m venv /py && \
     # install all dependencies in the requirements.txt file
     /py/bin/pip install -r /tmp/requirements.txt && \
     # shell script that will check if dev dependencies should be installed
-    if [$DEV="true"]; \
+    if [ $DEV = "true" ]; \
         then /py/bin/pip install -r /tmp/requirements.dev.txt ; \
     fi && \
     # remove the tmp directory containing the requirements files
