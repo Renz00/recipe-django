@@ -17,6 +17,12 @@ ARG DEV=false
 RUN python -m venv /py && \
     # upgrade pip to latest version
     /py/bin/pip install --upgrade pip && \
+    # install the postgresql driver and all needed dependencies into alpine image
+    apk add --update --no-cache postgresql-client && \
+    # groups all dependencies into tmp-build-deps for easier management. 
+    # postgresql-client is not included since it is not needed to be removed later.
+    apk add --update --no-cache --virtual .tmp-build-deps \
+        build-base postgresql-dev musl-dev && \
     # install all dependencies in the requirements.txt file
     /py/bin/pip install -r /tmp/requirements.txt && \
     # shell script that will check if dev dependencies should be installed
@@ -25,6 +31,8 @@ RUN python -m venv /py && \
     fi && \
     # remove the tmp directory containing the requirements files
     rm -rf /tmp && \
+    # remove the depenencies used to install postgresql driver
+    apk del .tmp-build-deps && \
     # add a user to the alpine image to manage the application
     adduser \
         # disable logins and use the user as default
