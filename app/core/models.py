@@ -15,9 +15,16 @@ class UserManager(BaseUserManager):
     """Manager for users"""
 
     def create_user(self, email, password=None, **extra_fields):
-        """Create, save and return a new user"""
+        """
+        Create, save and return a new user.
+        We create this custom method to avoid the default behaviour
+        of the model when adding new data. This will ensure that
+        the email is normalized and the password is properly hashed.
+        """
+
         if not email:
             raise ValueError('Users must have an email address')
+
         user = self.model(email=self.normalize_email(email), **extra_fields)
         user.set_password(password)
         user.save(using=self._db)

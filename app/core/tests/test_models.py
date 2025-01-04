@@ -22,7 +22,11 @@ class ModelTests(TestCase):
     def test_new_user_email_normalized(self):
         """
         Test email is normalized
+        Normalizing emails will convert the domain part
+        of the email to lowercase.
         """
+        # index 0 is the original email,
+        # index 1 is the expected result of normalize
         sample_emails = [
             ['test1@EXAMPLE.com', 'test1@example.com'],
             ['Test2@Example.com', 'Test2@example.com'],
@@ -36,6 +40,7 @@ class ModelTests(TestCase):
         """
         Test that create a new usser without email raises a ValueError
         """
+        # Check to see if the exception is raised
         with self.assertRaises(ValueError):
             get_user_model().objects.create_user('', 'sample123')
 
