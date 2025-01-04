@@ -27,7 +27,6 @@ class UserSerializer(serializers.ModelSerializer):
         # and return an http bad response if not satisfied.
         extra_kwargs = {'password': {'write_only': True, 'min_length': 5}}
 
-
     def create(self, validated_data):
         """
         Create a new user with encrypted password and return it.

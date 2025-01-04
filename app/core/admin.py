@@ -16,9 +16,11 @@ class UserAdminPages(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         (
-            _('Permissions'), # section title
+            # section title
+            _('Permissions'),
             {
-                'fields': ( # section fields
+                # section fields
+                'fields': (
                     'is_active',
                     'is_staff',
                     'is_superuser',
@@ -32,7 +34,8 @@ class UserAdminPages(BaseUserAdmin):
     # Customize the adding data to model page in admin site
     add_fieldsets = (
         (None, {
-            'classes': ('wide',), # for styling and formatting of page
+            # classes are for styling and formatting of page
+            'classes': ('wide',),
             'fields': (
                 'email',
                 'password1',
