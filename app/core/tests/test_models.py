@@ -1,7 +1,10 @@
 """Tests for models"""
+from decimal import Decimal
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+
+from core import models
 
 
 class ModelTests(TestCase):
@@ -44,7 +47,7 @@ class ModelTests(TestCase):
         with self.assertRaises(ValueError):
             get_user_model().objects.create_user('', 'sample123')
 
-    def create_new_superuser(self):
+    def test_create_new_superuser(self):
         """
         Test creating a new superuser
         """
@@ -55,3 +58,25 @@ class ModelTests(TestCase):
 
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
+
+    def test_create_recipe(self):
+        """Test creating a recipe is successful."""
+
+        # Creating a new user to use for the recipe model
+        user = get_user_model().objects.create_user(
+            'test@example.com',
+            'testpass123'
+        )
+
+        recipe = models.Recipe.objects.create(
+            user=user,
+            title='Steak and mushroom sauce',
+            time_minutes=5,
+            price=Decimal('5.00'),
+            description="Sample description for recipe."
+        )
+
+        self.assertEqual(recipe.user, user)
+        # Verify that the string representation of the recipe model
+        # is the title of the recipe
+        self.assertEqual(str(recipe), recipe.title)

@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from core import models
 
 
-class UserAdminPages(BaseUserAdmin):
+class UserAdminPageConfig(BaseUserAdmin):
     """Define the admin pages for users
     """
     ordering = ['id']
@@ -49,4 +49,6 @@ class UserAdminPages(BaseUserAdmin):
     )
 
 
-admin.site.register(models.User, UserAdminPages)
+admin.site.register(models.User, UserAdminPageConfig)
+# we don't need to customize the Recipe admin page
+admin.site.register(models.Recipe)

@@ -1,6 +1,6 @@
 """Database models
 """
-
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -9,7 +9,7 @@ from django.contrib.auth.models import (
 )
 
 
-# This is a custom class for managing operatings for the User model
+# This is a custom class for managing operations for the User model
 # such as create, update, delete, etc...
 class UserManager(BaseUserManager):
     """Manager for users"""
@@ -53,3 +53,24 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
+
+
+class Recipe(models.Model):
+    """
+    Recipe object.
+    We use the basic Model class for this model.
+    """
+    user = models.ForeignKey(
+        # Uses the user model defined in the app/settings.py file
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    time_minutes = models.IntegerField()
+    price = models.DecimalField(max_digits=5, decimal_places=2)
+    link = models.CharField(max_length=255, blank=True)
+
+    # This is useful when displaying the model in the Django admin site
+    def __str__(self):
+        return self.title
