@@ -9,5 +9,20 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
+        # Fields that are expected to be provided in the requests
+        # and will be saved in the model provided. If not satisfied,
+        # a http bad response will be returned.
         fields = ['id', 'title', 'time_minutes', 'price', 'link']
         read_only_fields = ['id']
+
+
+class RecipeDetailSerializer(RecipeSerializer):
+    """
+    Serializer for recipe detail object
+    We are basing this class with the RecipeSerializer class
+    since they share the same fields.
+    """
+
+    class Meta(RecipeSerializer.Meta):
+        # We just add the description field to the fields list
+        fields = RecipeSerializer.Meta.fields + ['description']

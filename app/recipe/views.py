@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from core.models import Recipe
 from recipe.serializers import (
     RecipeSerializer,
+    RecipeDetailSerializer
 )
 
 
@@ -19,7 +20,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     .list(), .retrieve(), .create(), .update(), .partial_update(),
     and .destroy()
     """
-    serializer_class = RecipeSerializer
+    serializer_class = RecipeDetailSerializer
     # Specify the queryset to be used for managing the model
     queryset = Recipe.objects.all()
     # This is to verify the user is authenticated and
@@ -30,8 +31,37 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Return objects for the current authenticated user only
+        Return objects for the current authenticated user only.
+        This overrides the default queryset behaviour for further
+        customization.
         """
         return self.queryset\
             .filter(user=self.request.user)\
             .order_by('-id')
+
+    def get_serializer_class(self):
+        """
+        Return appropriate serializer class.
+        This overrides the default serializer class behaviour
+        for further customization.
+        """
+        # We add this condition to limit the fields returned
+        # RecipeDetailsSerializer has all fields
+        # while RecipeSerializer has limited fields.
+        if self.action == 'list':
+            return RecipeSerializer
+
+        # by default, return the provided serializer_class
+        return self.serializer_class
+
+    def perform_create(self, serializer):
+        """
+        Create a new recipe.
+        This overrides the default create method for Recipe model.
+        Param 'serializer' is the serialized and validated data
+        that will be saved.
+        """
+
+        # We can access the currently authenticated user
+        # using self.request.user
+        serializer.save(user=self.request.user)
