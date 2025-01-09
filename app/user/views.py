@@ -15,6 +15,7 @@ from user.serializers import (
 class CreateUserView(generics.CreateAPIView):
     """
     Create a new user in the system.
+
     generics.CreateAPIView is used for create-only endpoints.
     This provides a POST method handler.
     """
@@ -35,6 +36,7 @@ class CreateTokenView(ObtainAuthToken):
 class ManageUserView(generics.RetrieveUpdateAPIView):
     """
     Manage the authenticated user.
+
     generics.RetrieveUpdateAPIView is used for read or update
     endpoints to represent a single model instance.
     Provides GET, PUT, PATCH methods handlers.

@@ -13,6 +13,8 @@ router = DefaultRouter()
 # this will create a set of generic API endpoints for recipes/
 # for each HTTP method
 router.register('recipes', views.RecipeViewSet)
+# Register the tags endpoint using router
+router.register('tags', views.TagViewSet)
 
 app_name = 'recipe'
 

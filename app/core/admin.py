@@ -52,3 +52,4 @@ class UserAdminPageConfig(BaseUserAdmin):
 admin.site.register(models.User, UserAdminPageConfig)
 # we don't need to customize the Recipe admin page
 admin.site.register(models.Recipe)
+admin.site.register(models.Tag)

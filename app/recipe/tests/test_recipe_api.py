@@ -20,7 +20,10 @@ RECIPES_URL = reverse('recipe:recipe-list')
 
 
 def detail_url(recipe_id):
-    """Create and return a recipe detial URL."""
+    """Create and return a recipe detial URL for
+        read, update, and delete requests.
+        This helper function will include the recipe_id in the URL.
+    """
     # These url names are automatically created by the drf router
     return reverse('recipe:recipe-detail', args=[recipe_id])
 
