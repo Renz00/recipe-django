@@ -8,7 +8,10 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Recipe
+from core.models import (
+    Recipe,
+    Tag
+)
 
 from recipe.serializers import (
     RecipeSerializer,
@@ -245,3 +248,122 @@ class PrivateRecipeApiTests(TestCase):
         # Verify that the recipe still exists in db
         recipe_exists = Recipe.objects.filter(id=recipe.id).exists()
         self.assertTrue(recipe_exists)
+
+    # We add the test for creating tags here because tags will
+    # be associated with the recipe and will only be created through
+    # the recipe model.
+    def test_create_recipe_with_new_tags(self):
+        """Test creating a recipe with new tags"""
+        payload = {
+            'title': 'Sample recipe',
+            'time_minutes': 30,
+            'price': Decimal('5.99'),
+            'tags': [
+                {'name': 'Vegan'},
+                {'name': 'Dinner'},
+            ]
+        }
+        res = self.client.post(RECIPES_URL, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        recipes = Recipe.objects.filter(user=self.user)
+        # Verify that a recipe was returned
+        self.assertEqual(recipes.count(), 1)
+        recipe = recipes[0]
+        # Verify that there are 2 tags associated with the recipe
+        self.assertEqual(recipe.tags.count(), 2)
+        for tag in payload['tags']:
+            # Verify that the tags exists in the db
+            tag_exists = recipe.tags.filter(name=tag['name'],
+                                            user=self.user).exists()
+            self.assertTrue(tag_exists)
+
+    def test_create_recipe_with_existing_tags(self):
+        """Test creating a recipe with existing tags"""
+
+        # Create 1 tag in the db for testing
+        existing_tag = Tag.objects.create(user=self.user, name='Soup')
+        # Associate 2 tags with the recipe.
+        # One is existing and one is new.
+        payload = {
+            'title': 'Sample recipe',
+            'time_minutes': 30,
+            'price': Decimal('5.99'),
+            'tags': [
+                {'name': 'Soup'},
+                {'name': 'Dinner'},
+            ]
+        }
+        res = self.client.post(RECIPES_URL, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        recipes = Recipe.objects.filter(user=self.user)
+        # Verify that a recipe was returned
+        self.assertEqual(recipes.count(), 1)
+        recipe = recipes[0]
+        # Verify that there are 2 tags associated with the recipe
+        self.assertEqual(recipe.tags.count(), 2)
+        # Verify that the existing tag is associated with the recipe
+        self.assertIn(existing_tag, recipe.tags.all())
+        for tag in payload['tags']:
+            # Verify that the tags exists in the db
+            tag_exists = recipe.tags.filter(name=tag['name'],
+                                            user=self.user).exists()
+            self.assertTrue(tag_exists)
+
+    def test_create_tag_on_recipe_update(self):
+        """Test creating non-existing tags on recipe update"""
+        recipe = create_recipe(user=self.user)
+        # We will update the tags of the recipe
+        payload = {
+            'tags': [
+                {'name': 'Lunch'},
+            ]
+        }
+        url = detail_url(recipe.id)
+        res = self.client.patch(url, payload,  format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        recipe.refresh_from_db()
+        # Verify that the tag was created in the db
+        new_tag = Tag.objects.get(user=self.user, name="Lunch")
+        self.assertIn(new_tag, recipe.tags.all())
+
+    def test_assign_tag_on_recipe_update(self):
+        """
+        Test assigning an existing tag when updating a recipe.
+        """
+        tag_viand = Tag.objects.create(user=self.user, name='Viand')
+        recipe = create_recipe(user=self.user)
+        # Adding a tag using the Tag model associate with the recipe
+        recipe.tags.add(tag_viand)
+
+        # We will update the recipe and replace tag_viand with tag_lunch
+        tag_lunch = Tag.objects.create(user=self.user, name='Lunch')
+        payload = {
+            'tags': [
+                {'name': 'Lunch'},
+            ]
+        }
+        url = detail_url(recipe.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(tag_lunch, recipe.tags.all())
+        # Verify that the tag was replace and no longer exists
+        self.assertNotIn(tag_viand, recipe.tags.all())
+
+    def test_clear_recipe_tags(self):
+        """Test clearing all tags on recipe update"""
+        tag = Tag.objects.create(user=self.user, name='Viand')
+        recipe = create_recipe(user=self.user)
+        recipe.tags.add(tag)
+
+        payload = {
+            'tags': []
+        }
+        url = detail_url(recipe.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(recipe.tags.count(), 0)

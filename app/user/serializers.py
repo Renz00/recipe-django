@@ -36,23 +36,27 @@ class UserSerializer(serializers.ModelSerializer):
         Create a new user with encrypted password and return it.
         This overrides the default create method for User model.
         """
-        # Use the create_user method from the user model manager.
+        # We set the create method to use the create_user method
+        # from the user model manager.
         # We use this method to avoid the default behaviour when storing
         # new data in models because the password needs to be hashed
         # before storing it
         return get_user_model().objects.create_user(**validated_data)
 
-    def update(self, instance, validated_data):
+    def update(self, user_instance, validated_data):
         """
         Override the default update method and return user.
         'instance' is the model instance that will be updated.
         """
-        # Retrieve the password value from the validated data
-        # dict then remove it from the dict for security.
-        # Password default is None if there is no password provided.
+        # If password exists, retrieve the password value from the
+        # validated data dict then remove it from the dict.
+        # Password default is None if there is no password found.
         password = validated_data.pop('password', None)
         # Call the parent class update method to update the user.
-        user = super().update(instance, validated_data)
+        # The password was popped out so it will not be included.
+        # This is because we will need to hash the password before
+        # saving it.
+        user = super().update(user_instance, validated_data)
 
         # Check if a password was provided then hash the
         # new password and save the user.
@@ -66,8 +70,10 @@ class UserSerializer(serializers.ModelSerializer):
 class AuthTokenSerializer(serializers.Serializer):
     """
     Serializer for the user authentication token.
+    This is using the Serializer class so there is no Meta class needed.
+    We don't user Model class because Token does not have a model and is
+    just an additional functionality.
     """
-    # This is using the Serializer class so there is no Meta class needed
     email = serializers.EmailField()
     password = serializers.CharField(
         style={'input_type': 'password'},

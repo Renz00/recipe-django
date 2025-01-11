@@ -9,12 +9,14 @@ from rest_framework.permissions import IsAuthenticated
 
 from core.models import (
     Recipe,
-    Tag
+    Tag,
+    Ingredient
 )
 from recipe.serializers import (
     RecipeSerializer,
     RecipeDetailSerializer,
-    TagSerializer
+    TagSerializer,
+    IngredientSerializer
 )
 
 
@@ -33,8 +35,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     # This is to verify the user is authenticated and
     # retrieve their identity.
+    # Adds support for token authentication
     authentication_classes = [TokenAuthentication]
-    # This is to verify the level of access of the user.
+    # User must be authenticated to perform any action
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -100,6 +103,7 @@ class TagViewSet(
     """
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
+    # Enforce authentication and permission
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -108,6 +112,27 @@ class TagViewSet(
         Return objects for the current authenticated user only.
         This overrides the default get queryset behaviour for further
         customization.
+        """
+        return self.queryset\
+            .filter(user=self.request.user)\
+            .order_by('-name')
+
+
+class IngredientViewSet(
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet):
+    """
+    Manage ingredients in the database viewsets.
+    """
+    serializer_class = IngredientSerializer
+    queryset = Ingredient.objects.all()
+    # Enforce authentication and permission
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Return objects for the current authenticated user only.
         """
         return self.queryset\
             .filter(user=self.request.user)\
