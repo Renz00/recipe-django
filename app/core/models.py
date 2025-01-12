@@ -72,6 +72,7 @@ class Recipe(models.Model):
     link = models.CharField(max_length=255, blank=True)
     # Define a many to many relationship with Tag model/table
     tags = models.ManyToManyField('Tag')
+    ingredients = models.ManyToManyField('Ingredient')
 
     # This is useful when displaying the model in the Django admin site
     def __str__(self):

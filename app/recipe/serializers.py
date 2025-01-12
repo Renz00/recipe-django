@@ -60,6 +60,8 @@ class RecipeSerializer(serializers.ModelSerializer):
                 **tag,
             )
             recipe.tags.add(tag_obj)
+        # No need to return values here because these
+        # functions will modify the recipe object directly.
 
     def _get_or_create_ingredients(self, ingredients, recipe):
         """
@@ -75,6 +77,8 @@ class RecipeSerializer(serializers.ModelSerializer):
                 **ingredient,
             )
             recipe.ingredients.add(ingredient_obj)
+        # No need to return values here because these
+        # functions will modify the recipe object directly.
 
     def create(self, validated_data):
         """
@@ -89,6 +93,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients = validated_data.pop('ingredients', [])
         # Create the recipe. The tags are not included.
         recipe = Recipe.objects.create(**validated_data)
+
         self._get_or_create_tags(tags, recipe)
         self._get_or_create_ingredients(ingredients, recipe)
 
@@ -103,13 +108,17 @@ class RecipeSerializer(serializers.ModelSerializer):
         # If the tags exist in the validated data, we pop it out
         # and store it in a separate variable. If it does not exist,
         # we default to an empty list.
-        tags = validated_data.pop('tags', [])
+        tags = validated_data.pop('tags', None)
+        ingredients = validated_data.pop('ingredients', None)
         if tags is not None:
             # We clear all tags prior to updating the recipe.
             recipe_instance.tags.clear()
             # Then we call the helper function to get the existing tags
             # or create new ones.
             self._get_or_create_tags(tags, recipe_instance)
+        if ingredients is not None:
+            recipe_instance.ingredients.clear()
+            self._get_or_create_ingredients(ingredients, recipe_instance)
 
         # We update the recipe model instance with the
         # validated data values.
