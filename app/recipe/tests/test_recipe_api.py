@@ -10,7 +10,8 @@ from rest_framework.test import APIClient
 
 from core.models import (
     Recipe,
-    Tag
+    Tag,
+    Ingredient
 )
 
 from recipe.serializers import (
@@ -367,3 +368,64 @@ class PrivateRecipeApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(recipe.tags.count(), 0)
+
+    # We add the test for creating ingredients here because they will
+    # be associated with the recipe and will only be created through
+    # the recipe model.
+    def test_create_recipe_with_new_ingredients(self):
+        """Test creating a recipe with new ingredients"""
+        payload = {
+            'title': 'Sample recipe',
+            'time_minutes': 30,
+            'price': Decimal('5.99'),
+            'ingredients': [
+                {'name': 'Salt'},
+                {'name': 'Pepper'},
+            ]
+        }
+        res = self.client.post(RECIPES_URL, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        recipes = Recipe.objects.filter(user=self.user)
+        # Verify that a recipe was returned
+        self.assertEqual(recipes.count(), 1)
+        recipe = recipes[0]
+        # Verify that there are 2 ingredients associated with the recipe
+        self.assertEqual(recipe.ingredients.count(), 2)
+        for ingredient in payload['ingredients']:
+            # Verify that the ingredients exists in the db
+            ingredient_exists = recipe.ingredients.filter(name=ingredient['name'],
+                                                          user=self.user).exists()
+            self.assertTrue(ingredient_exists)
+
+    def test_create_recipe_with_existing_ingredients(self):
+        """Test creating a recipe with existing ingredients"""
+        # Create 1 ingredient in the db for testing
+        existing_ingredient = Ingredient.objects.create(user=self.user, name='Salt')
+        # Associate 2 ingredients with the recipe.
+        # One is existing and one is new.
+        payload = {
+            'title': 'Sample recipe',
+            'time_minutes': 30,
+            'price': Decimal('5.99'),
+            'ingredients': [
+                {'name': 'Salt'},
+                {'name': 'Pepper'},
+            ]
+        }
+        res = self.client.post(RECIPES_URL, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        recipes = Recipe.objects.filter(user=self.user)
+        # Verify that a recipe was returned
+        self.assertEqual(recipes.count(), 1)
+        recipe = recipes[0]
+        # Verify that there are 2 ingredients associated with the recipe
+        self.assertEqual(recipe.ingredients.count(), 2)
+        # Verify that the existing ingredient is associated with the recipe
+        self.assertIn(existing_ingredient, recipe.ingredients.all())
+        for ingredient in payload['ingredients']:
+            # Verify that the ingredients exists in the db
+            ingredient_exists = recipe.ingredients.filter(name=ingredient['name'],
+                                                          user=self.user).exists()
+            self.assertTrue(ingredient_exists)

@@ -33,13 +33,15 @@ class RecipeSerializer(serializers.ModelSerializer):
     # We are nesting the TagSerializer class here to associate
     # tags with recipes. We are also setting the required field to False
     tags = TagSerializer(many=True, required=False)
+    ingredients = IngredientSerializer(many=True, required=False)
 
     class Meta:
         model = Recipe
         # Fields that are expected to be provided in the requests
         # and will be saved in the model provided. If not satisfied,
         # a http bad response will be returned.
-        fields = ['id', 'title', 'time_minutes', 'price', 'link', 'tags']
+        fields = ['id', 'title', 'time_minutes', 'price',
+                  'link', 'tags', 'ingredients']
         read_only_fields = ['id']
 
     # This helper function will be used in getting or creating recipes
@@ -58,7 +60,21 @@ class RecipeSerializer(serializers.ModelSerializer):
                 **tag,
             )
             recipe.tags.add(tag_obj)
-        return recipe
+
+    def _get_or_create_ingredients(self, ingredients, recipe):
+        """
+        Get or create ingredients for the recipe as needed.
+        """
+        # Add the ingredients to the recipe using the many-to-many
+        # relationship that was defined in the model.
+        auth_user = self.context['request'].user
+        for ingredient in ingredients:
+            # Gets existing ingredient or creates a new one.
+            ingredient_obj, created = Ingredient.objects.get_or_create(
+                user=auth_user,
+                **ingredient,
+            )
+            recipe.ingredients.add(ingredient_obj)
 
     def create(self, validated_data):
         """
@@ -70,9 +86,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         # and store it in a separate variable. If it does not exist,
         # we default to an empty list.
         tags = validated_data.pop('tags', [])
+        ingredients = validated_data.pop('ingredients', [])
         # Create the recipe. The tags are not included.
         recipe = Recipe.objects.create(**validated_data)
-        recipe = self._get_or_create_tags(tags, recipe)
+        self._get_or_create_tags(tags, recipe)
+        self._get_or_create_ingredients(ingredients, recipe)
+
         return recipe
 
     def update(self, recipe_instance, validated_data):
@@ -90,7 +109,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             recipe_instance.tags.clear()
             # Then we call the helper function to get the existing tags
             # or create new ones.
-            recipe_instance = self._get_or_create_tags(tags, recipe_instance)
+            self._get_or_create_tags(tags, recipe_instance)
 
         # We update the recipe model instance with the
         # validated data values.
