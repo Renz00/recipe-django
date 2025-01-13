@@ -41,7 +41,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         # and will be saved in the model provided. If not satisfied,
         # a http bad response will be returned.
         fields = ['id', 'title', 'time_minutes', 'price',
-                  'link', 'tags', 'ingredients']
+                  'link', 'tags', 'ingredients', 'image']
         read_only_fields = ['id']
 
     # This helper function will be used in getting or creating recipes
@@ -144,3 +144,17 @@ class RecipeDetailSerializer(RecipeSerializer):
         fields = RecipeSerializer.Meta.fields + ['description']
 
 
+class RecipeImageSerializer(serializers.ModelSerializer):
+    """Serializer for uploading images to recipes"""
+
+    class Meta:
+        model = Recipe
+        fields = ['id', 'image']
+        # Should not modify ID
+        read_only_fields = ['id']
+        # For validation
+        extra_kwargs = {
+            'image': {
+                'required': 'True'
+            }
+        }

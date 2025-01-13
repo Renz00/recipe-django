@@ -1,5 +1,9 @@
 """Test for the recipe API."""
 from decimal import Decimal
+import tempfile
+import os
+
+from PIL import Image
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -32,6 +36,11 @@ def detail_url(recipe_id):
     return reverse('recipe:recipe-detail', args=[recipe_id])
 
 
+def image_upload_url(recipe_id):
+    """Create and return an image upload URL."""
+    return reverse('recipe:recipe-upload-image', args=[recipe_id])
+
+
 def create_recipe(user, **params):
     """Helper function for creating and returning a sample recipe."""
     defaults = {
@@ -48,7 +57,7 @@ def create_recipe(user, **params):
     return recipe
 
 
-def create_user(email, password):
+def create_user(email='user@example.com', password='pass12345'):
     """
     Create and return a user.
     """
@@ -484,3 +493,53 @@ class PrivateRecipeApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(recipe.ingredients.count(), 0)
+
+
+class ImageUploadTests(TestCase):
+    """Tests for the image upload API"""
+
+    def setUp(self):
+        # Runs before every test
+        self.client = APIClient()
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+        self.recipe = create_recipe(user=self.user)
+
+    def tearDown(self):
+        # Runs after every test
+        self.recipe.image.delete()
+
+    def test_upload_image(self):
+        """Test uploading an image to a recipe"""
+        url = image_upload_url(self.recipe.id)
+        # Create a temporary image file
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as image_file:
+            # This will create a basic test image. Right now this
+            # image is saved in memory not in storage.
+            img = Image.new('RGB', (10, 10))
+            # Storing the temp file as JPEG format for this test
+            img.save(image_file, format="JPEG")
+            # Reset pointer to beginning of file. This is needed
+            # because the file is read from the end after saving.
+            image_file.seek(0)
+
+            # Upload the temp file to the url
+            payload = {'image': image_file}
+            res = self.client.post(url, payload, format='multipart')
+
+        self.recipe.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Check that the image field is in the response data
+        self.assertIn('image', res.data)
+        # Verify that the image was stored in the path
+        self.assertTrue(os.path.exists(self.recipe.image.path))
+
+    def test_upload_image_invalid_file_type(self):
+        """Test uploading an invalid file type"""
+        url = image_upload_url(self.recipe.id)
+        # Create a temporary text file
+        with tempfile.NamedTemporaryFile(suffix=".txt") as image_file:
+            payload = {'image': image_file}
+            res = self.client.post(url, payload, format='multipart')
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

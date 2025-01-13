@@ -18,11 +18,13 @@ RUN python -m venv /py && \
     # upgrade pip to latest version
     /py/bin/pip install --upgrade pip && \
     # install the postgresql driver and all needed dependencies into alpine image
-    apk add --update --no-cache postgresql-client && \
-    # groups all dependencies into tmp-build-deps for easier management. 
+    # jpeg-dev is for the PILLOW library in python
+    apk add --update --no-cache postgresql-client jpeg-dev && \
+    # groups all dependencies into tmp-build-deps for easier management.
     # postgresql-client is not included since it is not needed to be removed later.
     apk add --update --no-cache --virtual .tmp-build-deps \
-        build-base postgresql-dev musl-dev && \
+    # zlib and zlib-dev is for the PILLOW library in python
+        build-base postgresql-dev musl-dev zlib zlib-dev && \
     # install all dependencies in the requirements.txt file
     /py/bin/pip install -r /tmp/requirements.txt && \
     # shell script that will check if dev dependencies should be installed
@@ -40,7 +42,14 @@ RUN python -m venv /py && \
         # will not create a home directory for the user
         --no-create-home \
         # provide the user name
-        django-user
+        django-user && \
+    # create a directory for the static files.
+    # -p will create all parent/sub directories if it does not exist.
+    mkdir -p /vol/web/media && \
+    mkdir -p /vol/web/static && \
+    # change the owner of the directory to the created user
+    chown -R django-user:django-user /vol && \
+    chmod -R 755 /vol
 
 # make the python commands execute using the vitural environment
 ENV PATH="/py/bin:$PATH"

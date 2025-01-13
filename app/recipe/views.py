@@ -3,7 +3,10 @@
 from rest_framework import (
     viewsets,
     mixins,
+    status,
 )
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 
@@ -15,6 +18,7 @@ from core.models import (
 from recipe.serializers import (
     RecipeSerializer,
     RecipeDetailSerializer,
+    RecipeImageSerializer,
     TagSerializer,
     IngredientSerializer
 )
@@ -57,10 +61,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
         for further customization.
         """
         # We add this condition to limit the fields returned
-        # RecipeDetailsSerializer has all fields
+        # when the .list() action is called.
+        # RecipeDetailsSerializer has all fields,
         # while RecipeSerializer has limited fields.
         if self.action == 'list':
             return RecipeSerializer
+        elif self.action == 'upload_image':
+            # This makes the upload_image action use the RecipeImageSerializer
+            # This is a custom action that is added to the viewset.
+            return RecipeImageSerializer
 
         # by default, return the provided serializer_class
         return self.serializer_class
@@ -76,6 +85,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
         # We can access the currently authenticated user
         # using self.request.user
         serializer.save(user=self.request.user)
+
+    # Creating a custom action.
+    # detail=True means that the detail endpoint will be used for this action and
+    # will need a url with the primary key (id) of the object.
+    @action(methods=['POST'], detail=True, url_path='upload-image')
+    def upload_image(self, request, pk=None):
+        """Upload an image to recipe"""
+        # Gets the recipe object using the primary key
+        recipe = self.get_object()
+        # Serializes the data. This will use the RecipeImageSerializer
+        # as specified in the get_serializer_class method.
+        serializer = self.get_serializer(recipe, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Will return all errors included in the serializer
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # The mixin classes should be provided before the viewset class
