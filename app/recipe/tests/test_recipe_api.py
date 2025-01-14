@@ -494,6 +494,65 @@ class PrivateRecipeApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(recipe.ingredients.count(), 0)
 
+    def test_filter_by_tags(self):
+        """Test filtering recipes by tags"""
+        # Creating 2 recipes for testing
+        recipe_1 = create_recipe(user=self.user, title='Chicken Adobo')
+        recipe_2 = create_recipe(user=self.user, title='Pork Sisig')
+        # Createing 2 tags, 1 for each recipe
+        tag_1 = Tag.objects.create(user=self.user, name='Halal')
+        tag_2 = Tag.objects.create(user=self.user, name='Filipino')
+        # Assign the tags to each recipe
+        recipe_1.tags.add(tag_1)
+        recipe_2.tags.add(tag_2)
+        # Create a recipe with no associated tags
+        recipe_3 = create_recipe(user=self.user, title='Beef Caldereta')
+        # The request should return all recipes asssociated
+        # to the included tags in the params
+        params = {'tags': f'{tag_1.id},{tag_2.id}'}
+        res = self.client.get(RECIPES_URL, params)
+
+        # Serializing the recipe objects for comparison
+        serial_1 = RecipeSerializer(recipe_1)
+        serial_2 = RecipeSerializer(recipe_2)
+        serial_3 = RecipeSerializer(recipe_3)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(serial_1.data, res.data)
+        self.assertIn(serial_2.data, res.data)
+        # Recipe 3 should not be included in the response because
+        # it does not have any of the associated tags.
+        self.assertNotIn(serial_3.data, res.data)
+
+    def test_filter_by_ingredients(self):
+        """Test filtering recipes by ingredients"""
+        # Creating 2 recipes for testing
+        recipe_1 = create_recipe(user=self.user, title='Chicken Adobo')
+        recipe_2 = create_recipe(user=self.user, title='Beef Caldereta')
+        # Creating 2 ingredients, 1 for each recipe.
+        ingredient_1 = Ingredient.objects.create(user=self.user, name='Soy Sauce')
+        ingredient_2 = Ingredient.objects.create(user=self.user, name='Tomato Sauce')
+        # Assign the tags to each recipe
+        recipe_1.ingredients.add(ingredient_1)
+        recipe_2.ingredients.add(ingredient_2)
+        # Creating a recipe with no ingredients
+        recipe_3 = create_recipe(user=self.user, title='Pork Sisig')
+        # The request should return all recipes asssociated
+        # to the included ingredients in the params
+        params = {'ingredients': f'{ingredient_1.id},{ingredient_2.id}'}
+        res = self.client.get(RECIPES_URL, params)
+
+        # Serialize the created recipe objects for comparison
+        serial_1 = RecipeSerializer(recipe_1)
+        serial_2 = RecipeSerializer(recipe_2)
+        serial_3 = RecipeSerializer(recipe_3)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(serial_1.data, res.data)
+        self.assertIn(serial_2.data, res.data)
+        # Recipe 3 should not be included in the response because
+        self.assertNotIn(serial_3.data, res.data)
+
 
 class ImageUploadTests(TestCase):
     """Tests for the image upload API"""

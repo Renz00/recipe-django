@@ -1,6 +1,7 @@
 """
 Tests for the ingredient API
 """
+from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import TestCase
@@ -8,9 +9,14 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Ingredient
+from core.models import (
+    Ingredient,
+    Recipe,
+)
 
-from recipe.serializers import IngredientSerializer
+from recipe.serializers import (
+    IngredientSerializer,
+)
 
 
 INGREDIENTS_URL = reverse('recipe:ingredient-list')
@@ -22,6 +28,22 @@ def detail_url(ingredient_id):
 def create_user(email='user@example.com', password='testpass12345'):
     """Create and return a user"""
     return get_user_model().objects.create_user(email, password)
+
+
+def create_recipe(user, **params):
+    """Helper function for creating and returning a sample recipe."""
+    defaults = {
+        'title': 'Sample recipe title',
+        'time_minutes': 10,
+        'price': Decimal('5.00'),
+        'description': 'Sample recipe description',
+        'link': 'https://example.com/recipe.pdf'
+    }
+    # add the additional parameters to the defaults dict
+    defaults.update(params)
+
+    recipe = Recipe.objects.create(user=user, **defaults)
+    return recipe
 
 
 class PublicIngredientApiTests(TestCase):
@@ -101,3 +123,47 @@ class PrivateIngredientApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
         ingredient_exists = Ingredient.objects.filter(id=ingredient.id).exists()
         self.assertFalse(ingredient_exists)
+
+    def test_filter_ingredients_assigned_to_any_recipe(self):
+        """Test only listing ingredients that are assigned to any recipes"""
+        # Create 2 ingredients for testing
+        ingredient_1 = Ingredient.objects.create(user=self.user,
+                                                 name='Soy Sauce')
+        # ingredient_2 will not be assigned to any recipe
+        ingredient_2 = Ingredient.objects.create(user=self.user,
+                                                 name='Vinegar')
+        # Create a recipe with ingredient_1
+        recipe = create_recipe(user=self.user)
+        recipe.ingredients.add(ingredient_1)
+        recipe.refresh_from_db()
+
+        params = {'assigned_only': 1} # 1 is equivalent to True
+        res = self.client.get(INGREDIENTS_URL, params)
+
+        serial_1 = IngredientSerializer(ingredient_1)
+        serial_2 = IngredientSerializer(ingredient_2)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Verify that only 1 ingredient is returned in response
+        self.assertEqual(len(res.data), 1)
+        self.assertIn(serial_1.data, res.data)
+        # Verify that ingredient_2 is not included in the response
+        self.assertNotIn(serial_2.data, res.data)
+
+    def test_filtered_ingredients_are_unique(self):
+        """Test that the filtered ingredients have no duplicates."""
+        ingredient = Ingredient.objects.create(user=self.user, name='Salt')
+        # Not assign to a variable because we only need to create it
+        Ingredient.objects.create(user=self.user, name='Pepper')
+        # Creating 2 recipes and assigning the same ingredient to both
+        recipe_1 = create_recipe(user=self.user)
+        recipe_2 = create_recipe(user=self.user)
+        recipe_1.ingredients.add(ingredient)
+        recipe_2.ingredients.add(ingredient)
+
+        params = {'assigned_only': 1}
+        res = self.client.get(INGREDIENTS_URL, params)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Verify that only 1 ingredient is returned in response
+        self.assertEqual(len(res.data), 1)

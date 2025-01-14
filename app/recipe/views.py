@@ -1,5 +1,11 @@
 """Views for the Recipe API
 """
+from drf_spectacular.utils import (
+    extend_schema_view,
+    extend_schema,
+    OpenApiParameter,
+    OpenApiTypes,
+)
 from rest_framework import (
     viewsets,
     mixins,
@@ -13,17 +19,36 @@ from rest_framework.permissions import IsAuthenticated
 from core.models import (
     Recipe,
     Tag,
-    Ingredient
+    Ingredient,
 )
 from recipe.serializers import (
     RecipeSerializer,
     RecipeDetailSerializer,
     RecipeImageSerializer,
     TagSerializer,
-    IngredientSerializer
+    IngredientSerializer,
 )
 
-
+# Customizing for the API documentation
+@extend_schema_view(
+    # list is the action/endpoint that we are customizing for
+    list=extend_schema(
+        # Define the parameters that can be passed with the requests
+        parameters= [
+            # Specify the details of parameters that can be accepted
+            OpenApiParameter(
+                name='tags',
+                type=OpenApiTypes.STR,
+                description="Comma separated list of tags to filter by",
+            ),
+            OpenApiParameter(
+                name='ingredients',
+                type=OpenApiTypes.STR,
+                description="Comma separated list of ingredients to filter by",
+            ),
+        ]
+    )
+)
 class RecipeViewSet(viewsets.ModelViewSet):
     """
     Manage recipes in the database viewsets.
@@ -44,15 +69,44 @@ class RecipeViewSet(viewsets.ModelViewSet):
     # User must be authenticated to perform any action
     permission_classes = [IsAuthenticated]
 
+    def _params_to_ints(self, qs):
+        """
+        Convert a list of string IDs to a list of integers.
+        This will convert the comma separated string of IDs
+        in the URL parameters to a list of integers.
+        """
+        return [int(str_id) for str_id in qs.split(',')]
+
     def get_queryset(self):
         """
         Return objects for the current authenticated user only.
         This overrides the default queryset behaviour for further
         customization.
         """
-        return self.queryset\
-            .filter(user=self.request.user)\
-            .order_by('-id')
+        # return self.queryset\
+        #     .filter(user=self.request.user)\
+        #     .order_by('-id')
+
+        # Get all the tags and ingredients from the URL query parameters.
+        tags = self.request.query_params.get('tags')
+        ingredients = self.request.query_params.get('ingredients')
+        queryset = self.queryset
+
+        if tags:
+            # If tag params exist, convert the string to a
+            # list of integers
+            tag_ids = self._params_to_ints(tags)
+            # Filter the queryset to only include recipes with
+            # the specified tag ids
+            queryset = queryset.filter(tags__id__in=tag_ids)
+        if ingredients:
+            ingredients = self._params_to_ints(ingredients)
+            queryset = queryset.filter(ingredients__id__in=ingredients)
+
+        # We use distict() to avoid duplicate results which may happen
+        # if a recipe has multiple tags or ingredients.
+        return queryset.filter(user=self.request.user)\
+            .order_by('-id').distinct()
 
     def get_serializer_class(self):
         """
@@ -106,8 +160,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# The mixin classes should be provided before the viewset class
-class BaseRecipeViewSet(
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='assigned_only',
+                type=OpenApiTypes.INT,
+                # Will only accept 0 or 1 as values
+                enum=[0, 1],
+                description="Filter by items assigned to recipes.",
+            ),
+        ]
+    )
+)
+class BaseRecipeAttrViewSet(
     mixins.DestroyModelMixin,
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin,
@@ -139,12 +205,26 @@ class BaseRecipeViewSet(
         This overrides the default get queryset behaviour for further
         customization.
         """
-        return self.queryset\
+        # bool() is used to convert the value to a boolean
+        assigned_only = bool(
+            # int() is used to convert the value to an integer
+            # and the default value is 0 if the parameter is not provided
+            int(self.request.query_params.get('assigned_only', 0))
+        )
+        queryset = self.queryset
+        if assigned_only:
+            # the filter will check if there is a recipe assigned to the
+            # ingredient or tag.
+            queryset = queryset.filter(recipe__isnull=False)
+
+        # We use distict() to avoid duplicate results which may happen
+        # if an ingredient/tag is assigned to multiple recipes.
+        return queryset\
             .filter(user=self.request.user)\
-            .order_by(order_by)
+            .order_by(order_by).distinct()
 
 
-class TagViewSet(BaseRecipeViewSet):
+class TagViewSet(BaseRecipeAttrViewSet):
     """
     Manage tags in the database viewsets.
     """
@@ -155,7 +235,7 @@ class TagViewSet(BaseRecipeViewSet):
         return super().get_queryset('-name')
 
 
-class IngredientViewSet(BaseRecipeViewSet):
+class IngredientViewSet(BaseRecipeAttrViewSet):
     """
     Manage ingredients in the database viewsets.
     """

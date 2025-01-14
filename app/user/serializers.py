@@ -20,7 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
         # We use get_user_model() to get the user model
         # that is used in the project.
         model = get_user_model()
-        # Fields that are expected to be provided in the requests
+        # Fields that will be validated in the requests
         # and will be saved in the model provided. If not satisfied,
         # a http bad response will be returned.
         fields = ['email', 'password', 'name']

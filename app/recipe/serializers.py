@@ -37,7 +37,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        # Fields that are expected to be provided in the requests
+        # Fields that will be validated in the requests
         # and will be saved in the model provided. If not satisfied,
         # a http bad response will be returned.
         fields = ['id', 'title', 'time_minutes', 'price',
