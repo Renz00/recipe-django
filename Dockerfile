@@ -7,6 +7,8 @@ ENV PYTHONUNBUFFERED 1
 
 COPY ./requirements.txt /tmp/requirements.txt
 COPY ./requirements.dev.txt /tmp/requirements.dev.txt
+# /scripts will be used for helper scripts for running the docker container
+COPY ./scripts /scripts
 COPY ./app /app
 WORKDIR /app
 EXPOSE 8000
@@ -24,7 +26,8 @@ RUN python -m venv /py && \
     # postgresql-client is not included since it is not needed to be removed later.
     apk add --update --no-cache --virtual .tmp-build-deps \
     # zlib and zlib-dev is for the PILLOW library in python
-        build-base postgresql-dev musl-dev zlib zlib-dev && \
+    # linux-headers package will be needed by uWSGI
+        build-base postgresql-dev musl-dev zlib zlib-dev linux-headers && \
     # install all dependencies in the requirements.txt file
     /py/bin/pip install -r /tmp/requirements.txt && \
     # shell script that will check if dev dependencies should be installed
@@ -49,10 +52,17 @@ RUN python -m venv /py && \
     mkdir -p /vol/web/static && \
     # change the owner of the directory to the created user
     chown -R django-user:django-user /vol && \
-    chmod -R 755 /vol
+    chmod -R 755 /vol && \
+    # Make sure the scripts inside the directory are executable
+    chmod -R +x /script
 
 # make the python commands execute using the vitural environment
-ENV PATH="/py/bin:$PATH"
+# included the scripts directory since there are scripts to execute
+# : is used as a spearator for multiple paths
+ENV PATH="/scripts:/py/bin:$PATH"
 
 # switch to this user from root
 USER django-user
+
+# run the server using the script
+CMD [ "run.sh" ]
