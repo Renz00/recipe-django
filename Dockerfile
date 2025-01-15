@@ -54,7 +54,7 @@ RUN python -m venv /py && \
     chown -R django-user:django-user /vol && \
     chmod -R 755 /vol && \
     # Make sure the scripts inside the directory are executable
-    chmod -R +x /script
+    chmod -R +x /scripts
 
 # make the python commands execute using the vitural environment
 # included the scripts directory since there are scripts to execute
