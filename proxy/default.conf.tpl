@@ -12,7 +12,7 @@ server {
     # This will handle all request not handled by the above
     location / {
         # this is the config for the uWSGI server
-        uwsgi_pass  ${APP_HOST}:${APP_PORT}
+        uwsgi_pass  ${APP_HOST}:${APP_PORT};
         # this is needed to include the uwsgi params
         include     /etc/nginx/uwsgi_params;
         # the maximum body size of requests (files should be 10MB or less)

@@ -21,6 +21,6 @@ class Command(BaseCommand):
                 db_up = True
             except (OperationalError, Psycopg2OpError):
                 self.stdout.write("Write database unavailable, \
-                    waiting 1 second...")
-                time.sleep(1)
+                    waiting 5 seconds...")
+                time.sleep(5)
         self.stdout.write(self.style.SUCCESS('Database available!'))

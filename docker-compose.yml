@@ -20,8 +20,7 @@ services:
       - DB_USER=devuser
       - DB_PASS=changeme
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
 
   db:
@@ -32,11 +31,6 @@ services:
       - POSTGRES_DB=devdb
       - POSTGRES_USER=devuser
       - POSTGRES_PASSWORD=changeme
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
 
 
 volumes:

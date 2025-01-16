@@ -10,4 +10,4 @@ python manage.py collectstatic --noinput
 python manage.py migrate
 
 # Start the uWSGI server on port 9000
-uswgi --socket :9000 --workers 4 --master --enable-threads --module app.wsgi
+uwsgi --socket :9000 --workers 4 --master --enable-threads --module app.wsgi

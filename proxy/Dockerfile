@@ -16,7 +16,7 @@ ENV APP_PORT=9000
 USER root
 
 RUN mkdir -p /vol/static && \
-    chmod -R 755 /vol/static && \
+    chmod 755 /vol/static && \
     # Create the conf file and set the user (ngnix) as owner
     # for running the run.sh script later
     touch /etc/nginx/conf.d/default.conf && \

@@ -65,4 +65,4 @@ ENV PATH="/scripts:/py/bin:$PATH"
 USER django-user
 
 # run the server using the script
-CMD [ "run.sh" ]
+CMD ["run.sh"]
