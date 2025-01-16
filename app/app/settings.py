@@ -1,5 +1,5 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -9,13 +9,25 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-0h6pg6_7i!2kh)#90)nu39ndc_)\
-    322oahwyjg@6v1zw2*luxoe'
+
+# This will retrieve the SECRET_KEY from the docker environment
+# If it is not found, it will use the default value 'changeme'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'changeme')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(int(os.environ.get('DEBUG', 0)))
 
 ALLOWED_HOSTS = []
+# Extend will append the filtered ALLOWED_HOSTS values to the list
+ALLOWED_HOSTS.extend(
+    # filter() will remove any empty strings from the list
+    filter(
+        None,
+        # Will retrieve the comma separated string value
+        # and convert it to a list
+        os.environ.get('ALLOWED_HOSTS', '').split(','),
+    )
+)
 
 
 # Application definition
